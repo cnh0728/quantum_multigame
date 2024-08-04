@@ -1,18 +1,56 @@
 using ExitGames.Client.Photon;
 using Photon.Realtime;
+using Quantum.Demo;
+using Quantum;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Timeline;
+using System.Linq;
 
 public class NetworkManager : MonoBehaviour, IMatchmakingCallbacks, ILobbyCallbacks, IConnectionCallbacks, IOnEventCallback
 {
     [SerializeField] string appId_raw = "e2318a8f-03ae-4728-9d84-08cc28ebfa53";
-    [SerializeField]int expectedMaxPlayer = 4;
+    [SerializeField] string region = "kr";
+    [SerializeField] string appversion = "1.0";
+    [SerializeField] string lobbyMap = "Map1";
+    [SerializeField] int expectedMaxPlayer = 4;
+
+    enum PhotonEventCode
+    {
+        JoinRoom = 110,
+        //JoinRoom = 111,
+    }
+
+    //public enum State
+    //{
+    //    Connecting,
+    //    Error,
+    //    Joining,
+    //    Creating,
+    //    WaitingForPlayers,
+    //    Starting
+    //}
+
+    //private State state
+    //{
+    //    get { return state; }
+    //    set
+    //    {
+    //        state = value;
+    //        Debug.Log("Setting UIJoinRandom state to " + state.ToString());
+    //    }
+    //}
+
+
+    public RuntimeConfigContainer RuntimeConfigContainer;
+    public ClientIdProvider.Type IdProvider = ClientIdProvider.Type.NewGuid;
+    public Boolean Spectate = false;
+    public Boolean IsRejoining { get; set; }
 
     ConnectionProtocol protocol = ConnectionProtocol.Udp;
-
+    
     QuantumLoadBalancingClient client;
     EnterRoomParams enterRoomParams;
     OpJoinRandomRoomParams opJoinRandomRoomParams;
@@ -25,7 +63,6 @@ public class NetworkManager : MonoBehaviour, IMatchmakingCallbacks, ILobbyCallba
     bool connectServer = false;
     bool loginSuccess;
     bool masterServerConnection;
-    string region = "kr";
 
     Dictionary<string, RoomInfo> cachedRoomList;
 
@@ -41,7 +78,7 @@ public class NetworkManager : MonoBehaviour, IMatchmakingCallbacks, ILobbyCallba
     {
         if (connectServer)
         {
-            client.Service();
+            client?.Service();
         }
     }
 
@@ -66,8 +103,9 @@ public class NetworkManager : MonoBehaviour, IMatchmakingCallbacks, ILobbyCallba
 
     void SetAppSettings(string region)
     {
+        appSettings.AppVersion = appversion;
         appSettings.AppIdRealtime = appId_raw;
-        appSettings.FixedRegion = "kr";
+        appSettings.FixedRegion = region;
     }
 
     //roomoption.CustomRoomPropertiesForLobby 이 hashtable인데, 여기에 각 키별로 값을 설정해서 내 방이 어떤속성을 띄는지 설정할 수 있다.
@@ -145,7 +183,7 @@ public class NetworkManager : MonoBehaviour, IMatchmakingCallbacks, ILobbyCallba
 
         masterServerConnection = false;
 
-        if (!ConnectServer(Managers.Player.Nickname, "kr"))
+        if (!ConnectServer(Managers.Player.Nickname, region))
         {
             loginSuccess = false;
             yield break;
@@ -206,6 +244,8 @@ public class NetworkManager : MonoBehaviour, IMatchmakingCallbacks, ILobbyCallba
         refreshRoomListAction = null;
     }
 
+
+
     private void UpdateCachedRoomList(List<RoomInfo> roomList)
     {
         for (int i = 0; i < roomList.Count; i++)
@@ -224,6 +264,34 @@ public class NetworkManager : MonoBehaviour, IMatchmakingCallbacks, ILobbyCallba
         if(refreshRoomListAction != null)
             refreshRoomListAction();
     }
+
+    void SetLobbyRoomProperty()
+    {
+
+        if (client != null && client.InRoom)
+        {
+            // Only admin posts properties into the room
+            if (client.LocalPlayer.IsMasterClient)
+            {
+                //var mapGuid = (AssetGuid)(client.CurrentRoom.CustomProperties.TryGetValue("MAP-GUID", out var guid) ? (long)guid : 0L);
+
+                var ht = new ExitGames.Client.Photon.Hashtable();
+
+                var lobbyMapGuid = UnityEngine.Resources.Load<MapAsset>($"{QuantumEditorSettings.Instance.DatabasePathInResources}/{lobbyMap}").AssetObject.Guid;
+
+                ht.Add("MAP-GUID", lobbyMapGuid.Value);
+
+                // Set START to true when we enough players joined or !WaitForAll
+                ht.Add("START", true);
+                
+                if (ht.Count > 0)
+                {
+                    client.CurrentRoom.SetCustomProperties(ht);
+                }
+            }
+        }
+    }
+
     #region MatchMakingCallback
     /// <summary>
     /// Called when the server sent the response to a FindFriends request.
@@ -292,6 +360,22 @@ public class NetworkManager : MonoBehaviour, IMatchmakingCallbacks, ILobbyCallba
     {
         Debug.Log("OnJoinedRoom");
 
+        SetLobbyRoomProperty();
+
+        //if (client.LocalPlayer.IsMasterClient) //client ismasterclient가 룸 방장인지
+        //{
+            if (!client.OpRaiseEvent((byte)PhotonEventCode.JoinRoom, null, new RaiseEventOptions { Receivers = ReceiverGroup.All }, SendOptions.SendReliable))
+            {
+                Debug.LogError($"Failed to send start game event");
+            }
+        //}
+        //else
+        //{
+        //    if (!client.OpRaiseEvent((byte)PhotonEventCode.JoinRoom, null, new RaiseEventOptions { Receivers = ReceiverGroup.All }, SendOptions.SendReliable))
+        //    {
+        //        Debug.LogError($"Failed to send start game event");
+        //    }
+        //}
     }
 
     /// <summary>
@@ -519,10 +603,87 @@ public class NetworkManager : MonoBehaviour, IMatchmakingCallbacks, ILobbyCallba
     #endregion
 
     #region OnEvent
+
     public void OnEvent(EventData photonEvent)
     {
-        Debug.Log($"OnEvent {photonEvent.Code}");
+        Debug.Log(photonEvent.ToString());
+
+        object mapGuidValue;
+
+        switch (photonEvent.Code)
+        {
+            case (byte)PhotonEventCode.JoinRoom:
+
+                client.CurrentRoom.CustomProperties.TryGetValue("MAP-GUID", out mapGuidValue);
+                if (mapGuidValue == null)
+                {
+                    //UIDialog.Show("Error", "Failed to read the map guid during start", () => client?.Disconnect());
+                    client?.Disconnect();
+                    return;
+                }
+
+                if (client.LocalPlayer.IsMasterClient)
+                {
+                    // Save the started state in room properties for late joiners (TODO: set this from the plugin)
+                    var ht = new ExitGames.Client.Photon.Hashtable { { "STARTED", true } };
+                    client.CurrentRoom.SetCustomProperties(ht);
+
+                    if (client.CurrentRoom.CustomProperties.TryGetValue("HIDE-ROOM", out var hideRoom) && (bool)hideRoom)
+                    {
+                        client.CurrentRoom.IsVisible = false;
+                    }
+                }
+
+                StartQuantumGame((AssetGuid)(long)mapGuidValue); //방에들어가면 startquantum을 안함
+
+                break;
+            //case (byte)PhotonEventCode.JoinRoom:
+            //    client.CurrentRoom.CustomProperties.TryGetValue("MAP-GUID", out mapGuidValue);
+            //    client.CurrentRoom.CustomProperties.TryGetValue("STARTED", out var started);
+
+            //    var mapGuid = (AssetGuid)(long)mapGuidValue;
+            //    StartQuantumGame(mapGuid);
+
+            //    break;
+        }
     }
+
     #endregion
 
+    private void StartQuantumGame(AssetGuid mapGuid)
+    {
+        if (QuantumRunner.Default != null)
+        {
+            // There already is a runner, maybe because of duplicated calls, button events or race-conditions sending start and not deregistering from event callbacks in time.
+            Debug.LogWarning($"Another QuantumRunner '{QuantumRunner.Default.name}' has prevented starting the game");
+            return;
+        }
+
+        var config = RuntimeConfigContainer != null ? RuntimeConfig.FromByteArray(RuntimeConfig.ToByteArray(RuntimeConfigContainer.Config)) : new RuntimeConfig();
+
+        config.Map.Id = mapGuid;
+
+        var param = new QuantumRunner.StartParameters
+        {
+            RuntimeConfig = config,
+            DeterministicConfig = DeterministicSessionConfigAsset.Instance.Config,
+            ReplayProvider = null,
+            GameMode = Spectate ? Photon.Deterministic.DeterministicGameMode.Spectating : Photon.Deterministic.DeterministicGameMode.Multiplayer,
+            FrameData = IsRejoining ? UIGame.Instance?.FrameSnapshot : null,
+            InitialFrame = IsRejoining ? (UIGame.Instance?.FrameSnapshotNumber).Value : 0,
+            PlayerCount = client.CurrentRoom.MaxPlayers,
+            LocalPlayerCount = Spectate ? 0 : 1,
+            RecordingFlags = RecordingFlags.None,
+            NetworkClient = client,
+            StartGameTimeoutInSeconds = 10.0f
+        };
+
+        Debug.Log($"Starting QuantumRunner with map guid '{mapGuid}' and requesting {param.LocalPlayerCount} player(s).");
+
+        // Joining with the same client id will result in the same quantum player slot which is important for reconnecting.
+        var clientId = ClientIdProvider.CreateClientId(IdProvider, client);
+        QuantumRunner.StartGame(clientId, param);
+
+        ReconnectInformation.Refresh(client, TimeSpan.FromMinutes(1));
+    }
 }

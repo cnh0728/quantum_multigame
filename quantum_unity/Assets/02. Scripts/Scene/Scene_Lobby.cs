@@ -4,7 +4,6 @@ using UnityEngine;
 using Quantum.Demo;
 using Photon.Realtime;
 using Quantum;
-
 public class Scene_Lobby : Scene_Base
 {
     [SerializeField] SceneUI_Lobby _sceneUI;

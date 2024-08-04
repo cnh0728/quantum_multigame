@@ -40,17 +40,6 @@ public class Scene_Login : Scene_Base
         //로그인 진행창으로 바꿔야할듯
     }
 
-    bool ConnectServer(string nickName)
-    {
-        return Managers.Network.ConnectServer(nickName, "kr"); //드롭다운 만들어서 지역설정 가능하게
-
-    }
-
-    bool ConnectLobby()
-    {
-        return Managers.Network.ConnectLobby();
-    }
-
     void SetNickname(string nickname)
     {
         Managers.Player.Nickname = nickname;

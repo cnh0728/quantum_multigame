@@ -318,6 +318,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   appId_raw: e2318a8f-03ae-4728-9d84-08cc28ebfa53
+  expectedMaxPlayer: 4
 --- !u!1 &521254553
 GameObject:
   m_ObjectHideFlags: 0
@@ -535,6 +536,67 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fea1f92c1108824d91cdaf884c4b0c7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &1526964537
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1526964540}
+  - component: {fileID: 1526964539}
+  - component: {fileID: 1526964538}
+  m_Layer: 0
+  m_Name: '@QuantumCallback'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1526964538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1526964537}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fea1f92c1108824d91cdaf884c4b0c7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1526964539
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1526964537}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c7fbd9999eb6e94cb28b582b93c9d57, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  PlayerData:
+    CharacterPrototype:
+      Id:
+        Value: 2290031199145295460
+--- !u!4 &1526964540
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1526964537}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2.3797998, y: 2.315896, z: 12.288355}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -545,3 +607,4 @@ SceneRoots:
   - {fileID: 521254554}
   - {fileID: 508896587}
   - {fileID: 1276721139}
+  - {fileID: 1526964540}

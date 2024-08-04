@@ -26,7 +26,7 @@ public class Managers : MonoBehaviour
     {
         _instance = this;
 
-        _network = this.gameObject.AddComponent<NetworkManager>();
+        _network = this.gameObject.GetComponent<NetworkManager>();
     }
 
     void Start()

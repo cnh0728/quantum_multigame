@@ -81,6 +81,7 @@
     <Compile Include="Frame.User.cs" />
     <Compile Include="FrameContext.User.cs" />
     <Compile Include="Platformer\MovementCharacterSystem.cs" />
+    <Compile Include="Platformer\PlayerSpawnSystem.cs" />
     <Compile Include="RuntimeConfig.User.cs" />
     <Compile Include="RuntimePlayer.User.cs" />
     <Compile Include="SimulationConfig.User.cs" />
